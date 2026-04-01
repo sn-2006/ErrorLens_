@@ -59,7 +59,7 @@ const API = {
   },
 
   async chat(message) {
-    const res = await fetch(`http://localhost:3000/api/chat`, {
+    const res = await fetch(`https://errorlens-3d5o.onrender.com/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
