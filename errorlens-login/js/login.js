@@ -4,7 +4,6 @@ import { getAuth, GithubAuthProvider, signInWithPopup } from "https://www.gstati
 
 // ===== CONFIG =====
 const firebaseConfig = {
-  apiKey: "AIzaSyCnwuXN7C6dpZFH9jikIbryo57F1pNh14s",
   authDomain: "errorlens-7133f.firebaseapp.com",
   projectId: "errorlens-7133f",
   storageBucket: "errorlens-7133f.appspot.com",
