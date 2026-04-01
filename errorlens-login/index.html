@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ErrorLens — AI-Powered DevOps Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Amaranth:ital,wght@0,400;0,700;1,400&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #05040a;
+    --bg2: #080712;
+    --purple: #8b5cf6;
+    --pink: #ec4899;
+    --blue: #3b82f6;
+    --electric: #06b6d4;
+    --grad1: linear-gradient(135deg, #8b5cf6, #ec4899);
+    --grad2: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    --grad3: linear-gradient(135deg, #ec4899, #3b82f6);
+    --grad4: linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899);
+    --text: #f0eeff;
+    --muted: #9d95c0;
+    --card: rgba(255,255,255,0.03);
+    --border: rgba(139,92,246,0.18);
+    --glow-purple: 0 0 40px rgba(139,92,246,0.35);
+    --glow-pink: 0 0 40px rgba(236,72,153,0.35);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  #cursor {
+    position: fixed; width: 12px; height: 12px; border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    pointer-events: none; z-index: 99999;
+    transform: translate(-50%, -50%);
+    transition: width .2s, height .2s, opacity .2s;
+    mix-blend-mode: screen;
+  }
+  #cursor-aura {
+    position: fixed; width: 40px; height: 40px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,0.22) 0%, rgba(236,72,153,0.08) 60%, transparent 80%);
+    pointer-events: none; z-index: 99998;
+    transform: translate(-50%, -50%);
+    transition: transform .08s ease-out, width .3s, height .3s;
+    filter: blur(2px);
+  }
+  body.hovering #cursor { width: 18px; height: 18px; }
+  body.hovering #cursor-aura { width: 65px; height: 65px; }
+
+  @media (pointer: coarse) {
+    #cursor, #cursor-aura { display: none; }
+    body { cursor: auto; }
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(var(--purple), var(--pink)); border-radius: 2px; }
+
+  .grad-text {
+    background: var(--grad1);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .grad-text-blue {
+    background: var(--grad2);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  .section-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 100px; padding: 6px 18px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--purple); margin-bottom: 20px;
+  }
+  .section-tag::before {
+    content: ''; display: block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--purple); box-shadow: 0 0 8px var(--purple);
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9997; opacity: 0.4;
+  }
+
+  /* ── NAVBAR ── */
+  #navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    padding: 20px 60px; display: flex; align-items: center; justify-content: space-between;
+    transition: background .4s, backdrop-filter .4s, padding .3s, box-shadow .4s;
+  }
+  #navbar.scrolled {
+    background: rgba(5,4,10,0.82); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 14px 60px;
+    box-shadow: 0 1px 0 rgba(139,92,246,0.12), 0 4px 30px rgba(0,0,0,0.5);
+  }
+  .nav-logo {
+    font-family: 'Amaranth', sans-serif; font-size: 1.55rem; font-weight: 700;
+    background: linear-gradient(135deg, #fff 30%, #c4b5fd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-decoration: none; letter-spacing: -0.02em;
+    filter: drop-shadow(0 0 12px rgba(139,92,246,0.5));
+  }
+  .nav-links { display: flex; list-style: none; gap: 38px; }
+  .nav-links a {
+    color: rgba(240,238,255,0.7); text-decoration: none;
+    font-size: 0.88rem; font-weight: 500; letter-spacing: 0.02em;
+    position: relative; transition: color .25s;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; bottom: -4px; left: 0; right: 100%;
+    height: 1.5px; background: var(--grad1); border-radius: 10px;
+    transition: right .3s cubic-bezier(.4,0,.2,1);
+  }
+  .nav-links a:hover { color: #fff; }
+  .nav-links a:hover::after { right: 0; }
+  .nav-icons { display: flex; align-items: center; gap: 16px; }
+  .nav-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid var(--border); background: rgba(139,92,246,0.06);
+    color: var(--muted); text-decoration: none; transition: all .25s;
+  }
+  .nav-icon:hover {
+    border-color: rgba(139,92,246,0.5); color: #fff;
+    background: rgba(139,92,246,0.15); box-shadow: var(--glow-purple);
+  }
+  .nav-icon svg { width: 16px; height: 16px; fill: currentColor; }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 140px 40px 80px; position: relative; overflow: hidden;
+  }
+  .orb {
+    position: absolute; border-radius: 50%; filter: blur(80px);
+    animation: drift 12s ease-in-out infinite; pointer-events: none;
+  }
+  .orb-1 { width:500px;height:500px; background:radial-gradient(circle,rgba(139,92,246,0.25) 0%,transparent 70%); top:-100px;left:-150px; animation-delay:0s; }
+  .orb-2 { width:600px;height:600px; background:radial-gradient(circle,rgba(236,72,153,0.18) 0%,transparent 70%); top:50px;right:-200px; animation-delay:-4s; }
+  .orb-3 { width:400px;height:400px; background:radial-gradient(circle,rgba(59,130,246,0.2) 0%,transparent 70%); bottom:0;left:30%; animation-delay:-8s; }
+  @keyframes drift {
+    0%,100% { transform:translate(0,0) scale(1); }
+    33% { transform:translate(30px,-20px) scale(1.05); }
+    66% { transform:translate(-20px,30px) scale(0.97); }
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(139,92,246,0.04) 1px,transparent 1px), linear-gradient(90deg,rgba(139,92,246,0.04) 1px,transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.28);
+    border-radius: 100px; padding: 7px 20px;
+    font-size: 0.74rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #c4b5fd; margin-bottom: 30px;
+    animation: fadeUp .8s ease both;
+  }
+  .hero-badge .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #8b5cf6; box-shadow: 0 0 10px #8b5cf6;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity:1; box-shadow:0 0 10px #8b5cf6; }
+    50% { opacity:.6; box-shadow:0 0 20px #8b5cf6; }
+  }
+  .hero-title {
+    font-size: clamp(3.5rem, 9vw, 7.5rem); font-weight: 800;
+    line-height: 1.0; letter-spacing: -0.04em; margin-bottom: 12px;
+    animation: fadeUp .8s .1s ease both;
+  }
+  .hero-title .line2 {
+    display: block; background: var(--grad4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    background-size: 200%;
+    animation: fadeUp .8s .15s ease both, gradShift 4s ease-in-out infinite;
+  }
+  @keyframes gradShift {
+    0%,100% { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+  }
+  .hero-sub {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600;
+    color: rgba(240,238,255,0.75); margin-bottom: 22px;
+    animation: fadeUp .8s .22s ease both;
+  }
+  .hero-desc {
+    max-width: 560px; font-size: 0.97rem; line-height: 1.75;
+    color: var(--muted); margin-bottom: 42px;
+    animation: fadeUp .8s .3s ease both;
+  }
+  .hero-ctas {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    animation: fadeUp .8s .38s ease both; margin-bottom: 56px;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--grad1); color: #fff;
+    font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 600;
+    padding: 14px 32px; border-radius: 12px; border: none; cursor: none;
+    text-decoration: none; position: relative; overflow: hidden;
+    transition: transform .25s, box-shadow .25s;
+    box-shadow: 0 0 25px rgba(139,92,246,0.4);
+  }
+  .btn-primary::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0; transition: opacity .25s;
+  }
+  .btn-primary:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 45px rgba(139,92,246,0.65); }
+  .btn-primary:hover::before { opacity: 1; }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: rgba(240,238,255,0.8);
+    font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 500;
+    padding: 14px 32px; border-radius: 12px; border: 1px solid var(--border);
+    cursor: none; text-decoration: none; transition: all .25s; backdrop-filter: blur(10px);
+  }
+  .btn-secondary:hover {
+    border-color: rgba(139,92,246,0.5); color: #fff;
+    background: rgba(139,92,246,0.1); box-shadow: var(--glow-purple); transform: translateY(-2px);
+  }
+  .hero-illustration-wrap {
+    position: relative; width: min(820px, 92vw);
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeUp .9s .46s ease both; margin-top: 0;
+  }
+  .hero-illustration-wrap::before {
+    content: ''; position: absolute; width: 75%; height: 55%; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(139,92,246,0.28) 0%, rgba(236,72,153,0.14) 45%, transparent 75%);
+    filter: blur(40px); border-radius: 50%; pointer-events: none; z-index: 0;
+  }
+  .hero-illustration-wrap::after {
+    content: ''; position: absolute; width: 40%; height: 40%; top: 10%; left: 50%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(59,130,246,0.15) 0%, transparent 70%);
+    filter: blur(30px); pointer-events: none; z-index: 0;
+  }
+  .hero-illustration {
+    position: relative; z-index: 1; width: 100%; height: auto; display: block;
+    -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+    filter: drop-shadow(0 0 60px rgba(139,92,246,0.22)) drop-shadow(0 0 30px rgba(236,72,153,0.12));
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(28px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .reveal { opacity:0; transform:translateY(32px); transition:opacity .7s ease,transform .7s ease; }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+  .reveal-left { opacity:0; transform:translateX(-32px); transition:opacity .7s ease,transform .7s ease; }
+  .reveal-left.visible { opacity:1; transform:translateX(0); }
+
+  section { padding: 100px 60px; position: relative; }
+
+  /* ── PROBLEM SECTION ── */
+  #problem { padding: 0; }
+  .problem-outer { position: relative; }
+  .problem-sticky-wrap {
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .problem-header { padding: 0 60px; margin-bottom: 48px; flex-shrink: 0; }
+  .problem-header h2 {
+    font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800;
+    letter-spacing: -0.03em; line-height: 1.15;
+  }
+  .problem-track-clip { overflow: hidden; width: 100%; }
+  .problem-track {
+    display: flex; gap: 28px; padding: 0 60px;
+    will-change: transform; width: max-content;
+  }
+  .prob-card {
+    flex: 0 0 340px; background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(139,92,246,0.14); border-radius: 20px;
+    padding: 36px 32px; position: relative; overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s; cursor: default;
+  }
+  .prob-card::before {
+    content: ''; position: absolute; inset: 0; border-radius: 20px;
+    background: var(--grad1); opacity: 0; transition: opacity .3s; z-index: 0; filter: blur(50px);
+  }
+  .prob-card:hover { transform:translateY(-6px) scale(1.02); box-shadow:0 20px 60px rgba(139,92,246,0.18); border-color:rgba(139,92,246,0.4); }
+  .prob-card:hover::before { opacity: 0.08; }
+  .prob-card > * { position: relative; z-index: 1; }
+  .prob-icon {
+    width:54px;height:54px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:22px;
+  }
+  .pi-1 { background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3); }
+  .pi-2 { background:rgba(236,72,153,0.15);border:1px solid rgba(236,72,153,0.3); }
+  .pi-3 { background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); }
+  .pi-4 { background:rgba(6,182,212,0.15);  border:1px solid rgba(6,182,212,0.3); }
+  .pi-5 { background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); }
+  .prob-num { font-size:0.72rem;font-weight:700;letter-spacing:0.12em;color:var(--purple);text-transform:uppercase;margin-bottom:8px; }
+  .prob-card h3 { font-size:1.25rem;font-weight:700;margin-bottom:14px;letter-spacing:-0.02em; }
+  .prob-card p  { font-size:0.87rem;line-height:1.7;color:var(--muted); }
+
+  /* ── SOLUTION SECTION ── */
+  #solution { padding: 60px 60px 100px; }
+  #solution > .section-inner > h2 {
+    font-size:clamp(2rem,4vw,3.2rem);font-weight:800;letter-spacing:-0.03em;line-height:1.2;margin-bottom:14px;
+  }
+  #solution > .section-inner > p { color:var(--muted);font-size:0.97rem;margin-bottom:56px;max-width:480px; }
+
+  .sol-grid {
+    display: grid; grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: auto; gap: 20px;
+  }
+  .sol-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px 30px;
+    position: relative; overflow: hidden;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .35s;
+  }
+  .sol-card:hover { transform:translateY(-5px); box-shadow:0 20px 60px rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.35); }
+  .sol-card::after {
+    content:'';position:absolute;inset:0;border-radius:20px;
+    background:var(--grad1);opacity:0;transition:opacity .35s;z-index:0;filter:blur(60px);
+  }
+  .sol-card:hover::after { opacity: 0.07; }
+  .sol-card > * { position: relative; z-index: 1; }
+
+  /* Grid positions — rows 1 & 2 (existing) */
+  .sc-1 { grid-column: 1 / 8;   grid-row: 1; }
+  .sc-2 { grid-column: 8 / 13;  grid-row: 1; }
+  .sc-3 { grid-column: 1 / 6;   grid-row: 2; }
+  .sc-4 { grid-column: 6 / 10;  grid-row: 2; }
+  .sc-5 { grid-column: 10 / 13; grid-row: 2; }
+  /* Row 3 — two new cards split evenly across 12 columns */
+  .sc-6 { grid-column: 1 / 7;   grid-row: 3; }
+  .sc-7 { grid-column: 7 / 13;  grid-row: 3; }
+
+  .sc-badge {
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);
+    border-radius:100px;padding:4px 12px;
+    font-size:0.68rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--purple);margin-bottom:20px;
+  }
+  .sc-badge.pink { background:rgba(236,72,153,0.1); border-color:rgba(236,72,153,0.25); color:var(--pink); }
+  .sc-badge.blue { background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.25); color:var(--blue); }
+  .sc-badge.cyan { background:rgba(6,182,212,0.1);  border-color:rgba(6,182,212,0.25);  color:var(--electric); }
+  .sc-badge.gray { background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1); color:var(--muted); }
+
+  .sol-card h3 { font-size:1.15rem;font-weight:700;margin-bottom:12px;letter-spacing:-0.02em; }
+  .sc-1 h3 { font-size:1.5rem; }
+  .sol-card p { font-size:0.85rem;line-height:1.7;color:var(--muted); }
+
+  .sol-card .sc-visual {
+    margin-top:24px;border-radius:12px;overflow:hidden;
+    background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);
+  }
+  .log-lines { padding:16px 18px;font-family:'Courier New',monospace;font-size:0.72rem;line-height:1.9; }
+  .log-line  { display:flex;gap:12px; }
+  .log-time  { color:rgba(255,255,255,0.2);flex-shrink:0; }
+  .log-err   { color:#f87171; }
+  .log-warn  { color:#fbbf24; }
+  .log-ok    { color:#34d399; }
+  .log-info  { color:#93c5fd; }
+
+  .coming-soon {
+    position:absolute;top:18px;right:18px;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+    border-radius:100px;padding:3px 10px;
+    font-size:0.65rem;font-weight:600;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;
+  }
+
+  .mini-bars { display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:20px; }
+  .mbar { flex:1;border-radius:4px 4px 0 0;background:var(--grad1);opacity:0.5;transition:opacity .3s; }
+  .sol-card:hover .mbar { opacity: 0.85; }
+
+  .rc-list { margin-top:18px;display:flex;flex-direction:column;gap:8px; }
+  .rc-item {
+    display:flex;align-items:center;gap:10px;
+    background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+    border-radius:10px;padding:8px 14px;font-size:0.77rem;color:var(--muted);
+  }
+  .rc-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+
+  .compat-icons { display:flex;gap:10px;flex-wrap:wrap;margin-top:16px; }
+  .ci {
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;padding:6px 12px;font-size:0.72rem;color:rgba(255,255,255,0.5);font-weight:500;
+  }
+
+  /* Security list */
+  .sec-list { margin-top:18px;display:flex;flex-direction:column;gap:8px; }
+  .sec-item {
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+    border-radius:10px;padding:8px 14px;font-size:0.77rem;color:var(--muted);
+  }
+  .sec-item-left { display:flex;align-items:center;gap:10px; }
+  .sec-severity {
+    font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+    border-radius:100px;padding:2px 9px;border:1px solid;flex-shrink:0;
+  }
+  .sev-high { color:#fca5a5;border-color:rgba(248,113,113,0.35);background:rgba(248,113,113,0.08); }
+  .sev-med  { color:#fcd34d;border-color:rgba(251,191,36,0.35); background:rgba(251,191,36,0.08); }
+  .sev-low  { color:#6ee7b7;border-color:rgba(52,211,153,0.35); background:rgba(52,211,153,0.08); }
+  .sev-fix  { color:#c4b5fd;border-color:rgba(139,92,246,0.35); background:rgba(139,92,246,0.08); }
+
+  /* Stat bar rows */
+  .stat-bar-wrap { margin-top:20px;display:flex;flex-direction:column;gap:10px; }
+  .stat-bar-row  { display:flex;align-items:center;gap:10px; }
+  .stat-bar-label { font-size:0.7rem;color:var(--muted);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .stat-bar-track { flex:1;height:7px;background:rgba(255,255,255,0.05);border-radius:10px;overflow:hidden; }
+  .stat-bar-fill  { height:100%;border-radius:10px;transition:width .6s ease; }
+  .stat-bar-count { font-size:0.7rem;font-weight:700;color:var(--muted);width:28px;text-align:right;flex-shrink:0; }
+
+  /* ── CTA ── */
+  #cta { padding:100px 60px 70px;text-align:center;position:relative;overflow:hidden; }
+  #cta .cta-orb {
+    position:absolute;width:700px;height:700px;border-radius:50%;
+    background:radial-gradient(circle,rgba(139,92,246,0.12) 0%,transparent 70%);
+    left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;
+  }
+  #cta .cta-orb2 {
+    position:absolute;width:500px;height:500px;border-radius:50%;
+    background:radial-gradient(circle,rgba(236,72,153,0.1) 0%,transparent 70%);
+    left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;
+    animation:drift 8s ease-in-out infinite;
+  }
+  #cta > * { position:relative;z-index:1; }
+  #cta h2 { font-size:clamp(2.2rem,5vw,4rem);font-weight:800;letter-spacing:-0.04em;line-height:1.15;margin-bottom:18px; }
+  #cta p  { color:var(--muted);font-size:1rem;margin-bottom:44px;max-width:420px;margin-left:auto;margin-right:auto; }
+  .cta-glow-btn {
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--grad1);color:#fff;
+    font-family:'Poppins',sans-serif;font-size:1rem;font-weight:700;
+    padding:17px 50px;border-radius:14px;border:none;cursor:none;
+    text-decoration:none;position:relative;overflow:hidden;
+    transition:transform .3s,box-shadow .3s;
+    box-shadow:0 0 40px rgba(139,92,246,0.5),0 0 80px rgba(236,72,153,0.25);
+  }
+  .cta-glow-btn:hover { transform:translateY(-3px) scale(1.04); box-shadow:0 0 60px rgba(139,92,246,0.7),0 0 100px rgba(236,72,153,0.4); }
+  .cta-glow-btn::before {
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent);opacity:0;transition:opacity .3s;
+  }
+  .cta-glow-btn:hover::before { opacity:1; }
+
+  /* ── FOOTER ── */
+  #footer { border-top:1px solid rgba(139,92,246,0.1);background:rgba(5,4,10,0.8); }
+  .footer-top {
+    padding:50px 60px 60px;text-align:center;
+    border-bottom:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden;
+  }
+  .footer-top-orb {
+    position:absolute;width:600px;height:300px;border-radius:50%;
+    background:radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%);
+    top:-100px;left:50%;transform:translateX(-50%);pointer-events:none;
+  }
+  .footer-top > * { position:relative;z-index:1; }
+  .footer-top h3 { font-size:2rem;font-weight:700;margin-bottom:10px;letter-spacing:-0.02em; }
+  .footer-top p  { color:var(--muted);font-size:0.9rem;margin-bottom:32px; }
+  .email-form { display:flex;gap:12px;max-width:460px;margin:0 auto; }
+  .email-input {
+    flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.2);
+    border-radius:12px;padding:13px 18px;color:#fff;
+    font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;
+    transition:border-color .25s,box-shadow .25s;
+  }
+  .email-input::placeholder { color:rgba(255,255,255,0.25); }
+  .email-input:focus { border-color:rgba(139,92,246,0.5);box-shadow:0 0 20px rgba(139,92,246,0.15); }
+  .email-btn {
+    background:var(--grad1);color:#fff;border:none;border-radius:12px;
+    padding:13px 26px;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:600;
+    cursor:none;transition:transform .25s,box-shadow .25s;white-space:nowrap;
+    box-shadow:0 0 20px rgba(139,92,246,0.35);
+  }
+  .email-btn:hover { transform:translateY(-2px);box-shadow:0 0 35px rgba(139,92,246,0.6); }
+  .footer-bottom { padding:60px 60px 40px;display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px; }
+  .footer-col h4 { font-size:0.82rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:20px; }
+  .footer-logo {
+    font-family:'Amaranth',sans-serif;font-size:1.4rem;font-weight:700;
+    background:linear-gradient(135deg,#fff 30%,#c4b5fd);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    display:inline-block;margin-bottom:14px;
+  }
+  .footer-col p { font-size:0.84rem;line-height:1.7;color:var(--muted);max-width:260px; }
+  .footer-links { list-style:none;display:flex;flex-direction:column;gap:12px; }
+  .footer-links a {
+    color:var(--muted);text-decoration:none;font-size:0.87rem;transition:color .2s;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .footer-links a:hover { color:#fff; }
+  .footer-links a::before {
+    content:'';display:block;width:0;height:1px;background:var(--grad1);transition:width .25s;flex-shrink:0;
+  }
+  .footer-links a:hover::before { width:10px; }
+  .social-links { display:flex;gap:12px; }
+  .soc-link {
+    display:flex;align-items:center;justify-content:center;
+    width:38px;height:38px;border-radius:10px;
+    border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);
+    color:var(--muted);text-decoration:none;transition:all .25s;font-size:0.9rem;
+  }
+  .soc-link:hover {
+    border-color:rgba(139,92,246,0.4);color:#fff;
+    background:rgba(139,92,246,0.12);box-shadow:var(--glow-purple);transform:translateY(-2px);
+  }
+  .soc-link svg { width:15px;height:15px;fill:currentColor; }
+  .footer-copy {
+    border-top:1px solid rgba(255,255,255,0.05);padding:22px 60px;
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:0.78rem;color:rgba(255,255,255,0.2);
+  }
+  .footer-copy span { color:rgba(139,92,246,0.7); }
+
+  .divider { height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent);margin:0 60px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    #navbar { padding:16px 24px; }
+    #navbar.scrolled { padding:12px 24px; }
+    .nav-links { display:none; }
+    section { padding:80px 24px; }
+    #solution { padding:40px 24px 80px; }
+    .sol-grid { grid-template-columns:1fr; }
+    .sc-1,.sc-2,.sc-3,.sc-4,.sc-5,.sc-6,.sc-7 { grid-column:1/-1;grid-row:auto; }
+    .footer-bottom { grid-template-columns:1fr 1fr; }
+    .footer-copy { flex-direction:column;gap:8px;text-align:center; }
+    #hero { padding:120px 24px 60px; }
+    .hero-illustration-wrap { width:min(560px,95vw); }
+    .problem-header { padding:0 24px; }
+    .problem-track { padding:0 24px; }
+    #cta { padding:80px 24px 50px; }
+    .footer-top { padding:40px 24px 50px; }
+    .email-form { flex-direction:column; }
+    .footer-copy { padding:20px 24px; }
+    .divider { margin:0 24px; }
+  }
+  @media (max-width: 600px) {
+    .footer-bottom { grid-template-columns:1fr;padding:40px 24px; }
+    .hero-illustration-wrap { width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-aura"></div>
+
+<!-- ===================== NAVBAR ===================== -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">ErrorLens</a>
+  <ul class="nav-links">
+    <li><a href="#hero">Home</a></li>
+    <li><a href="#problem">Problems</a></li>
+    <li><a href="#solution">Solution</a></li>
+    <li><a href="#footer">Contact</a></li>
+  </ul>
+  <div class="nav-icons">
+    <a href="https://github.com/" class="nav-icon" title="GitHub">
+      <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+    </a>
+    <a href="https://discord.com/" class="nav-icon" title="Discord">
+      <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+    </a>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section id="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="hero-grid"></div>
+
+  <div class="hero-badge"><span class="dot"></span> In Development</div>
+  <h1 class="hero-title">Log in.<span class="line2">Fix Out.</span></h1>
+  <p class="hero-sub">Your AI-Powered DevOps Agent</p>
+  <p class="hero-desc">
+    ErrorLens analyzes your CI/CD logs in seconds — detecting root causes,
+    surfacing actionable fixes, and eliminating the endless cycle of manual
+    debugging. Ship faster. Break less.
+  </p>
+  <div class="hero-ctas">
+    <a href="login.html" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Get Started
+    </a>
+    <a href="prototype.html" class="btn-secondary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      View Demo
+    </a>
+  </div>
+  <div class="hero-illustration-wrap">
+    <img src="errorlensgraphics.png" alt="ErrorLens AI DevOps Illustration" class="hero-illustration" />
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===================== PROBLEM SECTION ===================== -->
+<div id="problem">
+  <div class="problem-outer" id="problem-outer">
+    <div class="problem-sticky-wrap">
+      <div class="problem-header reveal">
+        <div class="section-tag">The Pain Points</div>
+        <h2>Why Debugging CI/CD<br><span class="grad-text">is Painful</span></h2>
+      </div>
+      <div class="problem-track-clip">
+        <div class="problem-track" id="problem-track">
+          <div class="prob-card">
+            <div class="prob-icon pi-1">🌀</div>
+            <div class="prob-num">01</div>
+            <h3>Messy Logs</h3>
+            <p>CI/CD pipelines dump thousands of lines of raw, unformatted log output. Finding the signal in the noise is like searching for a needle in a haystack — every single time.</p>
+          </div>
+          <div class="prob-card">
+            <div class="prob-icon pi-2">⚠️</div>
+            <div class="prob-num">02</div>
+            <h3>Unclear Errors</h3>
+            <p>Cryptic stack traces, vague exit codes, and ambiguous error messages leave engineers guessing. Without context, even senior devs spend hours understanding what went wrong.</p>
+          </div>
+          <div class="prob-card">
+            <div class="prob-icon pi-3">⏳</div>
+            <div class="prob-num">03</div>
+            <h3>Time-Consuming Debugging</h3>
+            <p>The average engineer loses 4–6 hours per week just triaging pipeline failures. That's valuable product time lost to firefighting instead of building.</p>
+          </div>
+          <div class="prob-card">
+            <div class="prob-icon pi-4">🔍</div>
+            <div class="prob-num">04</div>
+            <h3>Missing Context</h3>
+            <p>Errors happen in isolation — no correlation with recent changes, no link to similar past failures, no awareness of the environment. Debugging without context is debugging blind.</p>
+          </div>
+          <div class="prob-card">
+            <div class="prob-icon pi-5">🔁</div>
+            <div class="prob-num">05</div>
+            <h3>Repeated Failures</h3>
+            <p>Without root cause analysis, the same bugs resurface. Teams patch symptoms instead of fixing root causes, creating a never-ending cycle of broken builds and lost confidence.</p>
+          </div>
+        </div><!-- end problem-track -->
+      </div><!-- end problem-track-clip -->
+    </div><!-- end sticky-wrap -->
+  </div><!-- end problem-outer -->
+</div><!-- end #problem -->
+
+<!-- ===================== SOLUTION SECTION ===================== -->
+<section id="solution">
+  <div class="section-inner">
+    <div class="section-tag reveal">The Solution</div>
+    <h2 class="reveal" style="transition-delay:.05s">Everything you need to <span class="grad-text">ship with confidence</span></h2>
+    <p class="reveal" style="transition-delay:.1s">ErrorLens brings AI intelligence directly into your DevOps workflow — turning hours of debugging into seconds of clarity.</p>
+
+    <div class="sol-grid">
+
+      <!-- sc-1: AI Log Analysis (large) -->
+      <div class="sol-card sc-1 reveal">
+        <div class="sc-badge">Core Feature</div>
+        <h3>AI-Powered Log Analysis</h3>
+        <p>ErrorLens ingests raw CI/CD logs and applies large language model intelligence to parse, categorize, and explain every event — eliminating noise and surfacing only what matters.</p>
+        <div class="sc-visual">
+          <div class="log-lines">
+            <div class="log-line"><span class="log-time">09:42:01</span><span class="log-info log-msg">▶ Starting build pipeline...</span></div>
+            <div class="log-line"><span class="log-time">09:42:03</span><span class="log-ok log-msg">✓ Dependencies installed (2.1s)</span></div>
+            <div class="log-line"><span class="log-time">09:42:07</span><span class="log-warn log-msg">⚠ Deprecated API usage detected</span></div>
+            <div class="log-line"><span class="log-time">09:42:11</span><span class="log-err log-msg">✗ ECONNREFUSED 127.0.0.1:5432</span></div>
+            <div class="log-line"><span class="log-time">09:42:11</span><span class="log-err log-msg">✗ Build failed — exit code 1</span></div>
+            <div class="log-line" style="margin-top:8px"><span class="log-time">09:42:12</span><span style="color:#c4b5fd" class="log-msg">🤖 ErrorLens: Database connection refused. Postgres service likely not started. Check your service definitions in ci.yml.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- sc-2: Root Cause Detection -->
+      <div class="sol-card sc-2 reveal" style="transition-delay:.05s">
+        <div class="sc-badge pink">Intelligence</div>
+        <h3>Root Cause Detection</h3>
+        <p>Don't just see what failed — understand <em>why</em>. ErrorLens traces failures back to their origin across complex dependency chains.</p>
+        <div class="rc-list">
+          <div class="rc-item"><span class="rc-dot" style="background:#f87171;box-shadow:0 0 8px #f87171"></span>DB connection timeout</div>
+          <div class="rc-item"><span class="rc-dot" style="background:#fbbf24;box-shadow:0 0 8px #fbbf24"></span>Missing env var: DB_HOST</div>
+          <div class="rc-item"><span class="rc-dot" style="background:#34d399;box-shadow:0 0 8px #34d399"></span>Suggested: add to ci.yml env block</div>
+        </div>
+      </div>
+
+      <!-- sc-6: Pipeline Security Intelligence (NEW) -->
+      <div class="sol-card sc-3 reveal" style="transition-delay:.19s">
+        <div class="sc-badge cyan">Security</div>
+        <h3>PAI-Powered Security Detection</h3>
+        <p>ErrorLens scans your pipeline configuration for vulnerabilities, insecure secrets handling, and dependency risks — flagging critical issues before they reach production.</p>
+        <div class="sec-list">
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <span class="rc-dot" style="background:#f87171;box-shadow:0 0 6px #f87171"></span>
+              Exposed API keys & secrets in logs
+            </div>
+            <span class="sec-severity sev-high">Secrets & Access Security</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <span class="rc-dot" style="background:#f87171;box-shadow:0 0 6px #f87171"></span>
+              Least-privilege violations in pipeline setup
+            </div>
+            <span class="sec-severity sev-high">Secrets & Access Security</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <span class="rc-dot" style="background:#fbbf24;box-shadow:0 0 6px #fbbf24"></span>
+              Misconfigured environment variables
+            </div>
+            <span class="sec-severity sev-med">Configuration Risks</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <span class="rc-dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>
+              Insecure dependency versions detected
+            </div>
+            <span class="sec-severity sev-fix">Dependency & AI Protection</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <span class="rc-dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>
+              AI-suggested secure fixes
+            </div>
+            <span class="sec-severity sev-fix">Dependency & AI Protection</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- sc-7: Error Analytics Dashboard (NEW) -->
+      <div class="sol-card sc-4 reveal" style="transition-delay:.22s">
+        <div class="sc-badge blue">Statistics</div>
+        <h3>Error Analytics Dashboard</h3>
+        <p>Visualise error frequency by category across every pipeline run. Spot recurring failure patterns instantly and make data-driven decisions on where to invest your debugging effort.</p>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">Build Failures</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:88%;background:linear-gradient(90deg,#f87171,#f97316)"></div>
+            </div>
+            <span class="stat-bar-count">47</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">Dep Conflicts</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:72%;background:linear-gradient(90deg,#fbbf24,#f97316)"></div>
+            </div>
+            <span class="stat-bar-count">38</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">Env Config</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:55%;background:linear-gradient(90deg,#3b82f6,#06b6d4)"></div>
+            </div>
+            <span class="stat-bar-count">29</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">Test Failures</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:40%;background:linear-gradient(90deg,#8b5cf6,#ec4899)"></div>
+            </div>
+            <span class="stat-bar-count">21</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">Infra Timeout</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:25%;background:linear-gradient(90deg,#06b6d4,#34d399)"></div>
+            </div>
+            <span class="stat-bar-count">13</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- sc-3: Actionable Fix Suggestions -->
+      <div class="sol-card sc-5 reveal" style="transition-delay:.1s">
+        <div class="sc-badge blue">Suggestions</div>
+        <h3>Actionable Fix Suggestions</h3>
+        <p>ErrorLens doesn't just flag problems — it recommends concrete, copy-paste-ready fixes based on best practices and your specific stack configuration.</p>
+        <div class="mini-bars">
+          <div class="mbar" style="height:35%"></div>
+          <div class="mbar" style="height:55%"></div>
+          <div class="mbar" style="height:40%"></div>
+          <div class="mbar" style="height:70%"></div>
+          <div class="mbar" style="height:90%"></div>
+          <div class="mbar" style="height:60%"></div>
+          <div class="mbar" style="height:45%"></div>
+          <div class="mbar" style="height:80%"></div>
+        </div>
+        <p style="font-size:0.72rem;color:var(--muted);margin-top:8px">Fix confidence rate — 94.7%</p>
+      </div>
+
+      <!-- sc-4: Error Summarization -->
+      <div class="sol-card sc-6 reveal" style="transition-delay:.13s">
+        <div class="sc-badge cyan">Summary</div>
+        <h3>Error Summarization</h3>
+        <p>Detect patterns in where you frequently make mistakes. Gain clear insights into the root causes behind them. Turn confusion into clarity in seconds.</p>
+      </div>
+
+      <!-- sc-5: Auto Fix -->
+      <div class="sol-card sc-7 reveal" style="transition-delay:.16s">
+        <div class="sc-badge gray">Reducing Manual Work</div>
+        <h3>Auto Fix ✨</h3>
+        <p>ErrorLens will autonomously open pull requests with suggested fixes — closing the loop from failure detection to resolution without lifting a finger.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===================== CTA SECTION ===================== -->
+<section id="cta">
+  <div class="cta-orb"></div>
+  <div class="cta-orb2"></div>
+  <div class="section-tag reveal">Ready to ship faster?</div>
+  <h2 class="reveal" style="transition-delay:.05s">
+    Stop wasting hours<br><span class="grad-text">debugging logs.</span>
+  </h2>
+  <p class="reveal" style="transition-delay:.1s">Join engineering teams that have cut their debugging time by over 80% using ErrorLens.</p>
+  <a href="prototype (1).html" class="cta-glow-btn reveal" style="transition-delay:.15s">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    Try Now — It's Free
+  </a>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer id="footer">
+  <div class="footer-top reveal">
+    <div class="footer-top-orb"></div>
+    <h3>Stay <span class="grad-text">Updated</span></h3>
+    <p>Enter your email to get updates about ErrorLens — no spam, ever.</p>
+    <div class="email-form">
+      <input class="email-input" type="email" placeholder="you@company.com" />
+      <button class="email-btn">Subscribe →</button>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div class="footer-col">
+      <div class="footer-logo">ErrorLens</div>
+      <p>AI-powered DevOps intelligence that turns cryptic CI/CD failures into clear, actionable fixes — in seconds.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <ul class="footer-links">
+        <li><a href="#hero">Home</a></li>
+        <li><a href="#problem">Problems</a></li>
+        <li><a href="#solution">Solution</a></li>
+        <li><a href="#footer">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Socials</h4>
+      <div class="social-links">
+        <a href="https://github.com/" class="soc-link" title="GitHub">
+          <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+        <a href="https://in.linkedin.com/" class="soc-link" title="LinkedIn">
+          <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+        <a href="https://x.com/?lang=en-in" class="soc-link" title="Twitter / X">
+          <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-copy">
+    <span style="color:rgba(255,255,255,0.2)">© 2025 <span>ErrorLens</span>. All rights reserved.</span>
+    <span style="color:rgba(255,255,255,0.12)">Built with ❤️ for DevOps engineers</span>
+  </div>
+</footer>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script>
+/* --- CURSOR --- */
+const cursor     = document.getElementById('cursor');
+const cursorAura = document.getElementById('cursor-aura');
+let mouseX = 0, mouseY = 0, auraX = 0, auraY = 0;
+
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  cursor.style.left = mouseX + 'px';
+  cursor.style.top  = mouseY + 'px';
+});
+(function tickAura() {
+  auraX += (mouseX - auraX) * 0.1;
+  auraY += (mouseY - auraY) * 0.1;
+  cursorAura.style.left = auraX + 'px';
+  cursorAura.style.top  = auraY + 'px';
+  requestAnimationFrame(tickAura);
+})();
+document.querySelectorAll('a, button, .prob-card, .sol-card, .nav-icon, .soc-link').forEach(el => {
+  el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+  el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+});
+
+/* --- NAVBAR SCROLL --- */
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 30);
+});
+
+/* --- REVEAL ON SCROLL --- */
+const revealEls = document.querySelectorAll('.reveal, .reveal-left');
+const observer  = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+revealEls.forEach(el => observer.observe(el));
+
+/* --- HORIZONTAL SCROLL PROBLEM SECTION --- */
+(function () {
+  const outer = document.getElementById('problem-outer');
+  const track = document.getElementById('problem-track');
+  if (!outer || !track) return;
+
+  let totalShift = 0, currentX = 0, targetX = 0;
+
+  function setup() {
+    totalShift = track.scrollWidth - window.innerWidth + 120;
+    outer.style.height = (totalShift + window.innerHeight) + 'px';
+  }
+  function getTargetX() {
+    const rect     = outer.getBoundingClientRect();
+    const scrolled = -rect.top;
+    const progress = Math.max(0, Math.min(1, scrolled / totalShift));
+    return progress * totalShift;
+  }
+  function render() {
+    targetX   = getTargetX();
+    currentX += (targetX - currentX) * 0.12;
+    if (Math.abs(targetX - currentX) < 0.3) currentX = targetX;
+    track.style.transform = `translateX(-${currentX}px)`;
+    requestAnimationFrame(render);
+  }
+  setup();
+  render();
+  window.addEventListener('resize', setup, { passive: true });
+})();
+
+/* --- EMAIL BUTTON FEEDBACK --- */
+document.querySelector('.email-btn').addEventListener('click', function () {
+  const input = document.querySelector('.email-input');
+  if (input.value && input.value.includes('@')) {
+    this.textContent = '✓ Subscribed!';
+    this.style.background = 'linear-gradient(135deg, #34d399, #059669)';
+    input.value = '';
+    setTimeout(() => { this.textContent = 'Subscribe →'; this.style.background = ''; }, 3000);
+  } else {
+    input.style.borderColor = 'rgba(248,113,113,0.6)';
+    input.style.boxShadow   = '0 0 20px rgba(248,113,113,0.15)';
+    setTimeout(() => { input.style.borderColor = ''; input.style.boxShadow = ''; }, 2000);
+  }
+});
+</script>
+</body>
+</html>
