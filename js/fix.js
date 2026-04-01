@@ -37,6 +37,8 @@ let prDone = false;
 
 // ─── API LAYER ─────────────────────────────────────────────────
 
+const BASE_URL = "https://errorlens-3d5o.onrender.com";
+
 const API = {
   async getRepo() {
     const res = await fetch(`${BASE_URL}/api/repo`);
