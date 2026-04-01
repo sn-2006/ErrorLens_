@@ -4,11 +4,13 @@ import { getAuth, GithubAuthProvider, signInWithPopup } from "https://www.gstati
 
 // ===== CONFIG =====
 const firebaseConfig = {
+  apiKey: "AIzaSyCnwuXN7C6dpZFH9jikIbryo57F1pNh14s",
   authDomain: "errorlens-7133f.firebaseapp.com",
   projectId: "errorlens-7133f",
-  storageBucket: "errorlens-7133f.appspot.com",
+  storageBucket: "errorlens-7133f.firebasestorage.app",
   messagingSenderId: "49084338937",
-  appId: "1:49084338937:web:4d030ab5f6dcc2572c4828"
+  appId: "1:49084338937:web:4d030ab5f6dcc2572c4828",
+  measurementId: "G-YD6P85E54W"
 };
 
 // ===== INIT =====
