@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("githubBtn");
 
   if (!btn) {
-    alert("GitHub button not found ❌");
+    console.error("GitHub button not found ❌");
     return;
   }
 
@@ -37,35 +37,28 @@ document.addEventListener("DOMContentLoaded", () => {
       const credential = GithubAuthProvider.credentialFromResult(result);
       const token = credential?.accessToken;
 
-      localStorage.setItem("github_token", token || "");
-      localStorage.setItem("user", result.user?.displayName || "User");
+      const user = result.user;
 
+      // ✅ STORE TOKEN (IMPORTANT FOR API CALLS)
+      localStorage.setItem("github_token", token || "");
+
+      // ✅ STORE USER INFO (FOR DASHBOARD UI)
+      localStorage.setItem("github_user", JSON.stringify({
+        login: user.reloadUserInfo?.screenName || user.displayName || "User",
+        avatar_url: user.photoURL
+      }));
+
+      console.log("✅ Login successful");
+      console.log("Token:", token);
+
+      // ✅ REDIRECT
       window.location.href = "dashboard.html";
+
     } catch (e) {
+      console.error("Login error:", e);
       alert("Login error: " + e.message);
     }
   });
 });
 
-if (!btn) {
-  alert("GitHub button not found ❌");
-} else {
-  btn.addEventListener("click", async () => {
-    try {
-      // This must run DIRECTLY on click (user gesture) for popup to open
-      const result = await signInWithPopup(auth, provider);
-
-      const credential = GithubAuthProvider.credentialFromResult(result);
-      const token = credential?.accessToken;
-
-      localStorage.setItem("github_token", token || "");
-      localStorage.setItem("user", result.user?.displayName || "User");
-
-      window.location.href = "dashboard.html";
-    } catch (e) {
-      alert("Login error: " + e.message);
-    }
-  });
-}
-
-console.log("Login started");
+console.log("🚀 Login script loaded");

@@ -5,133 +5,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ErrorLens — Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg-dark: #0F172A; --bg-card: #1E293B; --primary: #4F46E5;
-      --primary-light: #818CF8; --text: #F8FAFC; --subtext: #94A3B8;
-      --border: rgba(255,255,255,0.08);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-      padding: 32px;
-    }
-    .badge {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      color: #6EE7B7;
-      padding: 6px 16px;
-      border-radius: 100px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-    h1 {
-      font-family: 'Poppins', sans-serif;
-      font-size: clamp(1.8rem, 5vw, 2.8rem);
-      font-weight: 700;
-      text-align: center;
-      letter-spacing: -0.03em;
-    }
-    h1 span { color: var(--primary-light); }
-    p {
-      color: var(--subtext);
-      font-size: 1rem;
-      text-align: center;
-      max-width: 480px;
-      line-height: 1.7;
-    }
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 32px 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-width: 520px;
-      width: 100%;
-    }
-    .stat-row {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    .stat {
-      flex: 1;
-      min-width: 120px;
-      background: rgba(79, 70, 229, 0.08);
-      border: 1px solid rgba(79, 70, 229, 0.2);
-      border-radius: 10px;
-      padding: 16px;
-    }
-    .stat-value {
-      font-family: 'Poppins', sans-serif;
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--primary-light);
-    }
-    .stat-label {
-      font-size: 0.78rem;
-      color: var(--subtext);
-      margin-top: 2px;
-    }
-    .back-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--subtext);
-      padding: 10px 22px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .back-btn:hover { border-color: var(--primary-light); color: var(--text); }
-    .animation { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both; }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
 </head>
 <body>
-  <div class="badge animation" style="animation-delay:0s">✓ Authentication Successful</div>
-  <h1 class="animation" style="animation-delay:0.1s">Welcome to <span>ErrorLens</span></h1>
-  <p class="animation" style="animation-delay:0.2s">
-    You've successfully logged in. This is a placeholder dashboard.
-    Connect your backend to populate real data here.
-  </p>
 
-  <div class="card animation" style="animation-delay:0.3s">
-    <div class="stat-row">
-      <div class="stat">
-        <div class="stat-value">0</div>
-        <div class="stat-label">Active Errors</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">—</div>
-        <div class="stat-label">Workflow Runs</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">99.9%</div>
-        <div class="stat-label">Uptime</div>
-      </div>
+  <!-- ─── NAVBAR ─────────────────────────────────────────── -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">ErrorLens</span>
+      <span class="brand-badge">AI DevOps</span>
     </div>
+
+    <div class="nav-center" id="navBreadcrumb">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-status">
+        <span class="status-dot"></span>
+        <span class="status-text">Live</span>
+      </div>
+      <div class="nav-user" id="navUser">
+        <img class="avatar" id="userAvatar" src="" alt="avatar" />
+          <div class="user-info">
+          <span class="username" id="username">Username</span>
+          <span class="user-role">GitHub</span>
+      </div>
+    <div class="avatar-ring"></div>
+</div>
+    </div>
+  </nav>
+
+  <!-- ─── SECTION 1 : REPO SELECT ───────────────────────── -->
+  <section class="page" id="pageRepos">
+
+    <div class="page-header">
+      <div class="page-header-eyebrow">
+        <span class="mono dim">// step 01</span>
+      </div>
+      <h1 class="page-title">Select a Repository</h1>
+      <p class="page-subtitle">Choose the codebase you want ErrorLens to analyze. We'll scan the CI/CD logs and surface every failure.</p>
+    </div>
+
+    <div class="search-bar">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Filter repositories..." autocomplete="off" />
+      <span class="search-count mono" id="searchCount">3 repos</span>
+    </div>
+
+    <div class="repo-grid" id="repoGrid">
+      <!-- cards injected by JS -->
+    </div>
+
+    <!-- empty state -->
+    <div class="empty-state hidden" id="emptyState">
+      <div class="empty-icon">◌</div>
+      <p class="empty-title">No repositories found</p>
+      <p class="empty-sub mono">Try a different search term</p>
+    </div>
+
+  </section>
+
+  <!-- ─── SECTION 2 : ANALYZE ───────────────────────────── -->
+  <section class="page hidden" id="pageAnalyze">
+
+    <button class="back-btn" id="backBtn">
+      <span>←</span> Back to Repos
+    </button>
+
+    <div class="page-header">
+      <div class="page-header-eyebrow">
+        <span class="mono dim">// step 02</span>
+      </div>
+      <h1 class="page-title">Analyze Errors</h1>
+    </div>
+
+    <div class="analyze-card" id="analyzeCard">
+      <!-- repo info strip -->
+      <div class="repo-info-strip">
+        <div class="repo-info-dot"></div>
+        <div class="repo-info-content">
+          <span class="repo-info-label mono dim">Selected repository</span>
+          <span class="repo-info-name" id="selectedRepoName">—</span>
+        </div>
+        <div class="lang-pill" id="selectedRepoLang">—</div>
+      </div>
+
+      <!-- terminal window -->
+      <div class="terminal-window" id="terminalWindow">
+        <div class="terminal-chrome">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span class="terminal-title mono">ci/cd · pipeline logs</span>
+        </div>
+        <div class="terminal-body" id="terminalBody">
+          <span class="terminal-prompt mono">$ errlen scan --repo <span id="termRepoName">—</span></span>
+          <span class="terminal-hint mono dim">Ready. Press "Analyze Errors" to begin.</span>
+        </div>
+      </div>
+
+      <!-- action row -->
+      <div class="action-row">
+        <button class="btn-primary" id="analyzeBtn">
+          <span class="btn-icon">⟳</span>
+          <span>Analyze Errors</span>
+        </button>
+        <button class="btn-ghost disabled" id="prBtn" disabled>
+          <span class="btn-icon">⎇</span>
+          <span>Fix &amp; Create PR</span>
+          <span class="coming-soon-tag">Soon</span>
+        </button>
+      </div>
+
+      <!-- spinner / result area -->
+      <div class="result-area hidden" id="resultArea">
+        <div class="spinner-wrap" id="spinnerWrap">
+          <div class="spinner"></div>
+          <div class="spinner-text">
+            <span class="mono" id="spinnerMsg">Scanning logs…</span>
+            <span class="mono dim" id="spinnerSub">Connecting to repository</span>
+          </div>
+        </div>
+        <div class="result-msg hidden" id="resultMsg">
+          <span class="result-icon">◈</span>
+          <span id="resultText">Analysis complete.</span>
+        </div>
+        <div id="errorList"></div>
+      </div>
+
+    </div>
+
+  </section>
+    <div id="popup" class="popup hidden">
+      <div class="popup-header">
+      <span class="popup-dot"></span>
+      <span class="popup-title">Pipeline Failed</span>
   </div>
 
-  <a href="login.html" class="back-btn animation" style="animation-delay:0.4s">← Back to Login</a>
+    <p class="popup-text">ErrorLens detected an issue in your pipeline</p>
+
+    <button onclick="goToFixDemo()" class="popup-btn">
+    View Fix →
+    </button>
+</div>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>
-<script src="dashboard.js"></script>

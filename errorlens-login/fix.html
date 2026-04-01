@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ErrorLens — Fix &amp; PR</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/fix.css" />
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-left">
+    <a href="dashboard.html" class="nav-back" title="Back">
+      <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </a>
+
+    <div class="brand">
+      <span class="brand-hex">&#x2B21;</span>
+      <span class="brand-name">ErrorLens</span>
+    </div>
+
+    <span class="nav-sep">/</span>
+
+    <!-- DYNAMIC -->
+    <span class="nav-repo" id="navRepo"></span>
+  </div>
+
+  <div class="topnav-center">
+    <div class="analysis-status">
+      <span class="status-ring"></span>
+      <span class="status-label" id="analysisStatus">Analyzing...</span>
+    </div>
+  </div>
+
+  <div class="topnav-right">
+    <div class="nav-stat">
+      <!-- DYNAMIC -->
+      <span class="nav-stat-val" id="headerErrCount">0</span>
+      <span class="nav-stat-lbl">issues</span>
+    </div>
+
+    <div class="nav-stat">
+      <!-- DYNAMIC -->
+      <span class="nav-stat-val accent" id="headerConfidence">--%</span>
+      <span class="nav-stat-lbl">confidence</span>
+    </div>
+
+    <button class="btn-pr-nav" id="btnPrNav">
+      Auto Fix &amp; Create PR
+    </button>
+
+    <div class="nav-avatar">
+      <img id="userAvatar" class="avatar" src="" alt="avatar" />
+      <span id="username" class="username"></span>
+</div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-label">Error Summary</div>
+
+      <div class="summary-grid">
+        <div class="summary-tile critical">
+          <span class="tile-count" id="critCount">0</span>
+          <span class="tile-label">Critical</span>
+          <div class="tile-bar"><div class="tile-fill" id="critBar"></div></div>
+        </div>
+
+        <div class="summary-tile warning">
+          <span class="tile-count" id="warnCount">0</span>
+          <span class="tile-label">Warning</span>
+          <div class="tile-bar"><div class="tile-fill" id="warnBar"></div></div>
+        </div>
+
+        <div class="summary-tile info">
+          <span class="tile-count" id="infoCount">0</span>
+          <span class="tile-label">Info</span>
+          <div class="tile-bar"><div class="tile-fill" id="infoBar"></div></div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC -->
+      <div class="ai-summary-box">
+        <span class="ai-summary-icon">&#x25C8;</span>
+        <p class="ai-summary-text" id="aiSummaryText"></p>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Files with Issues</div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">AI Insights</div>
+      <div class="stats-list">
+        <div class="stat-row">
+          <span class="stat-name mono">Time Saved</span>
+          <span class="stat-val green" id="timeSaved">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name mono">Auto-Fixable</span>
+          <span class="stat-val accent" id="autoFixable">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name mono">Confidence</span>
+          <span class="stat-val" id="confidence">--%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name mono">Model</span>
+          <span class="stat-val dim mono" id="modelName">--</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <section class="content-section">
+      <div class="section-header">
+        <h2 class="section-title">Root Cause Detection</h2>
+        <span class="badge-count" id="issuesBadge">0 issues</span>
+      </div>
+
+      <div class="error-cards" id="errorCards"></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-header">
+        <h2 class="section-title">Before &amp; After Fix</h2>
+        <div class="code-tabs" id="codeTabs"></div>
+      </div>
+
+      <div class="diff-view">
+        <div class="diff-pane before">
+          <div class="diff-header">
+            <span class="diff-label before-label">BEFORE</span>
+            <span class="diff-filename mono" id="diffFileBefore"></span>
+            <button class="copy-btn" id="copyBefore">Copy</button>
+          </div>
+          <div class="code-block" id="codeBefore"></div>
+        </div>
+
+        <div class="diff-divider">&#10142;</div>
+
+        <div class="diff-pane after">
+          <div class="diff-header">
+            <span class="diff-label after-label">AFTER</span>
+            <span class="diff-filename mono" id="diffFileAfter"></span>
+            <button class="copy-btn" id="copyAfter">Copy</button>
+          </div>
+          <div class="code-block" id="codeAfter"></div>
+        </div>
+      </div>
+
+      <div class="fix-explanation">
+        <span class="fix-exp-icon">&#x2B21;</span>
+        <div class="fix-exp-body">
+          <span class="fix-exp-title" id="fixExpTitle"></span>
+          <p class="fix-exp-text" id="fixExpText"></p>
+        </div>
+        <span class="fix-confidence" id="fixConfidence"></span>
+      </div>
+    </section>
+
+    <!-- PR -->
+    <section class="pr-cta-section">
+      <div class="pr-cta-inner">
+        <div class="pr-cta-left">
+          <h3 class="pr-cta-title">Auto Fix &amp; Create PR</h3>
+          <p class="pr-cta-sub" id="prDescription"></p>
+        </div>
+
+        <div class="pr-cta-right">
+          <div class="pr-patch-pills">
+            <span class="pr-patch-pill" id="patchReady"></span>
+            <span class="pr-patch-pill dim" id="patchManual"></span>
+          </div>
+
+          <button class="btn-pr-main" id="btnPrMain">
+            Auto Fix &amp; Create PR →
+          </button>
+        </div>
+      </div>
+
+      <div class="pr-overlay hidden" id="prOverlay">
+        <div class="pr-overlay-inner">
+
+          <div class="pr-spinner-state" id="prSpinnerState">
+            <div class="pr-spin-ring"></div>
+            <div>
+              <div class="mono pr-spin-msg" id="prSpinMsg"></div>
+              <div class="mono dim pr-spin-sub" id="prSpinSub"></div>
+            </div>
+          </div>
+
+          <div class="pr-success-state hidden" id="prSuccessState">
+            <div class="pr-success-check">&#10003;</div>
+            <div>
+              <div class="pr-success-title">Pull Request Created</div>
+              <a href="#" id="prLink" class="pr-success-link mono"></a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CHAT -->
+  <aside class="chat-panel">
+    <div class="chat-header">
+      <span class="chat-title">AI Assistant</span>
+      <span class="chat-model mono" id="chatModel"></span>
+      <button id="chatClear" class="chat-clear-btn">
+         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages"></div>
+
+    <div class="chat-suggestions" id="chatSuggestions"></div>
+
+    <div class="chat-input-row">
+      <input id="chatInput" class="chat-input" placeholder="Ask about an error…" />
+      <button id="chatSend" class="chat-send-btn">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8h12M9 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_KEY",
+    authDomain: "YOUR_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // 🔥 Make auth global so fix.js can use it
+  window.auth = auth;
+</script>
+
+<script type="module" src="js/fix.js"></script>
+</body>
+</html>

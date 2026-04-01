@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ErrorLens — Fix &amp; PR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/fix-prototype.css" />
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-left">
+    <a href="dashboard.html" class="nav-back" title="Back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="brand">
+      <span class="brand-hex">&#x2B21;</span>
+      <span class="brand-name">ErrorLens</span>
+    </div>
+    <span class="nav-sep">/</span>
+    <span class="nav-repo" id="navRepo">ErrorLens</span>
+  </div>
+
+  <div class="topnav-center">
+    <div class="analysis-status" id="analysisStatus">
+      <span class="status-ring"></span>
+      <span class="status-label">Analysis Complete</span>
+    </div>
+  </div>
+
+  <div class="topnav-right">
+    <div class="nav-stat">
+      <span class="nav-stat-val" id="headerErrCount">5</span>
+      <span class="nav-stat-lbl">issues</span>
+    </div>
+    <div class="nav-stat">
+      <span class="nav-stat-val accent">94%</span>
+      <span class="nav-stat-lbl">confidence</span>
+    </div>
+    <button class="btn-pr-nav" id="btnPrNav">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="4.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="4.5" cy="11.5" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="11.5" cy="8" r="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 6v4M6 4.5h2a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Auto Fix &amp; Create PR
+    </button>
+    <div class="nav-avatar">
+      <img src="https://avatars.githubusercontent.com/u/9919?s=32" alt="avatar" />
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN LAYOUT: sidebar | main | chat -->
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-label">Error Summary</div>
+      <div class="summary-grid">
+        <div class="summary-tile critical">
+          <span class="tile-count" id="critCount">2</span>
+          <span class="tile-label">Critical</span>
+          <div class="tile-bar"><div class="tile-fill" id="critBar" style="width:40%"></div></div>
+        </div>
+        <div class="summary-tile warning">
+          <span class="tile-count" id="warnCount">2</span>
+          <span class="tile-label">Warning</span>
+          <div class="tile-bar"><div class="tile-fill" id="warnBar" style="width:40%"></div></div>
+        </div>
+        <div class="summary-tile info">
+          <span class="tile-count" id="infoCount">1</span>
+          <span class="tile-label">Info</span>
+          <div class="tile-bar"><div class="tile-fill" id="infoBar" style="width:20%"></div></div>
+        </div>
+      </div>
+      <div class="ai-summary-box">
+        <span class="ai-summary-icon">&#x25C8;</span>
+        <p class="ai-summary-text" id="aiSummaryText">ErrorLens detected a broken database connection, a missing module import, and an out-of-memory condition across 2 files. 3 of 5 issues are auto-fixable with high confidence.</p>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Files with Issues</div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">AI Insights</div>
+      <div class="stats-list">
+        <div class="stat-row">
+          <span class="stat-name mono">Time Saved</span>
+          <span class="stat-val green">~4.2 hrs</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name mono">Auto-Fixable</span>
+          <span class="stat-val accent">3 / 5</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name mono">Confidence</span>
+          <span class="stat-val">94.7%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name mono">Model</span>
+          <span class="stat-val dim mono">claude-sonnet</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ROOT CAUSE CARDS -->
+    <section class="content-section" id="sectionErrors">
+      <div class="section-header">
+        <h2 class="section-title">Root Cause Detection</h2>
+        <span class="badge-count" id="issuesBadge">5 issues</span>
+      </div>
+      <div class="error-cards" id="errorCards"></div>
+    </section>
+
+    <!-- BEFORE / AFTER -->
+    <section class="content-section" id="sectionCode">
+      <div class="section-header">
+        <h2 class="section-title">Before &amp; After Fix</h2>
+        <div class="code-tabs" id="codeTabs"></div>
+      </div>
+
+      <div class="diff-view" id="diffView">
+        <div class="diff-pane before">
+          <div class="diff-header">
+            <span class="diff-label before-label">BEFORE</span>
+            <span class="diff-filename mono" id="diffFileBefore"></span>
+            <button class="copy-btn" id="copyBefore" title="Copy">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.5"/></svg>
+              Copy
+            </button>
+          </div>
+          <div class="code-block" id="codeBefore"></div>
+        </div>
+
+        <div class="diff-divider">
+          <div class="diff-arrow">&#10142;</div>
+        </div>
+
+        <div class="diff-pane after">
+          <div class="diff-header">
+            <span class="diff-label after-label">AFTER</span>
+            <span class="diff-filename mono" id="diffFileAfter"></span>
+            <button class="copy-btn" id="copyAfter" title="Copy">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.5"/></svg>
+              Copy
+            </button>
+          </div>
+          <div class="code-block" id="codeAfter"></div>
+        </div>
+      </div>
+
+      <div class="fix-explanation" id="fixExplanation">
+        <span class="fix-exp-icon">&#x2B21;</span>
+        <div class="fix-exp-body">
+          <span class="fix-exp-title" id="fixExpTitle">What was wrong</span>
+          <p class="fix-exp-text" id="fixExpText"></p>
+        </div>
+        <span class="fix-confidence" id="fixConfidence">98%</span>
+      </div>
+    </section>
+
+    <!-- PR CTA SECTION -->
+    <section class="pr-cta-section" id="sectionPr">
+      <div class="pr-cta-inner">
+        <div class="pr-cta-left">
+          <div class="pr-cta-icon">
+            <svg width="28" height="28" viewBox="0 0 16 16" fill="none"><circle cx="4.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="4.5" cy="11.5" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="11.5" cy="8" r="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 6v4M6 4.5h2a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <h3 class="pr-cta-title">Auto Fix &amp; Create PR</h3>
+            <p class="pr-cta-sub">ErrorLens will apply all 3 auto-fixable patches and open a pull request directly on GitHub — ready to review and merge.</p>
+          </div>
+        </div>
+        <div class="pr-cta-right">
+          <div class="pr-patch-pills">
+            <span class="pr-patch-pill">3 patches ready</span>
+            <span class="pr-patch-pill dim">2 manual review</span>
+          </div>
+          <button class="btn-pr-main" id="btnPrMain">
+            <span class="btn-pr-text">Auto Fix &amp; Create PR</span>
+            <span class="btn-pr-arrow">&#8594;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PR overlay (loading + success) -->
+      <div class="pr-overlay hidden" id="prOverlay">
+        <div class="pr-overlay-inner">
+          <div class="pr-spinner-state" id="prSpinnerState">
+            <div class="pr-spin-ring"></div>
+            <div>
+              <div class="mono pr-spin-msg" id="prSpinMsg">Applying fixes&hellip;</div>
+              <div class="mono dim pr-spin-sub" id="prSpinSub">Patching ci.yml</div>
+            </div>
+          </div>
+          <div class="pr-success-state hidden" id="prSuccessState">
+            <div class="pr-success-check">&#10003;</div>
+            <div>
+              <div class="pr-success-title">Pull Request Created Successfully</div>
+              <a href="#" class="pr-success-link mono">#42 &middot; fix: resolve DB connection &amp; missing module</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- AI CHAT PANEL -->
+  <aside class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <span class="chat-ai-dot"></span>
+        <span class="chat-title">AI Assistant</span>
+        <span class="chat-model mono">claude-sonnet</span>
+      </div>
+      <button class="chat-clear-btn" id="chatClear" title="Clear chat">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages"></div>
+
+    <div class="chat-suggestions" id="chatSuggestions">
+      <button class="suggestion-chip" data-msg="What caused this error?">What caused this error?</button>
+      <button class="suggestion-chip" data-msg="Is this auto-fixable?">Is this auto-fixable?</button>
+      <button class="suggestion-chip" data-msg="Explain the DB connection issue">Explain DB issue</button>
+      <button class="suggestion-chip" data-msg="How long will the fix take?">ETA on fix?</button>
+    </div>
+
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" class="chat-input" placeholder="Ask about an error…" autocomplete="off" />
+      <button class="chat-send-btn" id="chatSend">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 1.5L8.5 14 14 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="css/fix-prototype.css"></script>
+</body>
+</html>
