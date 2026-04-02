@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoFix · AI Code Repair</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --bg2:      #13161e;
+      --bg3:      #1a1e28;
+      --border:   #252934;
+      --border2:  #2f3545;
+      --text:     #e2e4ec;
+      --muted:    #6b7399;
+      --accent:   #5b6af8;
+      --accent2:  #7c89fa;
+      --green:    #3ecf8e;
+      --red:      #f4645f;
+      --amber:    #f9a825;
+      --teal:     #38bdf8;
+      --mono:     'JetBrains Mono', monospace;
+      --sans:     'Syne', sans-serif;
+      --radius:   10px;
+      --radius-lg:16px;
+    }
+
+    html { font-size: 14px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-mark {
+      width: 30px; height: 30px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+    .logo-text span { color: var(--accent2); }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px;
+      background: var(--bg3); border: 1px solid var(--border2);
+      font-size: 11px; color: var(--muted); font-family: var(--mono);
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── LAYOUT ── */
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 0;
+      height: calc(100vh - 57px);
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    aside {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: var(--bg2);
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      resize: vertical;
+      line-height: 1.6;
+      outline: none;
+      transition: border-color .2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 7px;
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-primary:disabled { background: var(--border2); color: var(--muted); cursor: not-allowed; }
+    .btn-success { background: rgba(62,207,142,.15); color: var(--green); border: 1px solid rgba(62,207,142,.3); }
+    .btn-success:hover { background: rgba(62,207,142,.25); }
+    .btn-danger  { background: rgba(244,100,95,.12); color: var(--red); border: 1px solid rgba(244,100,95,.25); }
+    .btn-danger:hover  { background: rgba(244,100,95,.22); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border2); }
+    .btn-ghost:hover { background: var(--bg3); color: var(--text); }
+
+    /* ── CONTENT AREA ── */
+    .content {
+      overflow-y: auto;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600;
+    }
+    .card-body { padding: 18px; }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px; font-weight: 600;
+      font-family: var(--mono);
+    }
+    .badge-red    { background: rgba(244,100,95,.15); color: var(--red); }
+    .badge-green  { background: rgba(62,207,142,.15); color: var(--green); }
+    .badge-amber  { background: rgba(249,168,37,.15); color: var(--amber); }
+    .badge-teal   { background: rgba(56,189,248,.15); color: var(--teal); }
+    .badge-accent { background: rgba(91,106,248,.2);  color: var(--accent2); }
+
+    /* ── ERROR LINE ── */
+    .error-line {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 16px;
+      background: rgba(244,100,95,.07);
+      border: 1px solid rgba(244,100,95,.2);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #fca5a5;
+    }
+    .error-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── DIFF VIEWER ── */
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .diff-pane {
+      background: var(--bg3);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .diff-pane-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .5px;
+    }
+    .diff-pane-before .diff-pane-header { background: rgba(244,100,95,.12); color: var(--red); }
+    .diff-pane-after  .diff-pane-header { background: rgba(62,207,142,.1);  color: var(--green); }
+    .diff-code {
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text);
+      min-height: 80px;
+    }
+    .diff-pane-before .diff-code { color: #fca5a5; }
+    .diff-pane-after  .diff-code { color: #6ee7b7; }
+
+    /* ── CONFIDENCE BAR ── */
+    .confidence-wrap { display: flex; align-items: center; gap: 12px; }
+    .confidence-bar-bg {
+      flex: 1; height: 6px; border-radius: 3px;
+      background: var(--border2); overflow: hidden;
+    }
+    .confidence-bar-fill {
+      height: 100%; border-radius: 3px;
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+    .confidence-label { font-family: var(--mono); font-size: 13px; font-weight: 600; min-width: 36px; text-align: right; }
+
+    /* ── ALTERNATIVES ── */
+    .alt-list { display: flex; flex-direction: column; gap: 8px; }
+    .alt-item {
+      padding: 10px 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color .18s;
+    }
+    .alt-item:hover { border-color: var(--accent); }
+    .alt-label { font-size: 12px; font-weight: 600; color: var(--accent2); margin-bottom: 4px; }
+    .alt-code { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: pre-wrap; }
+
+    /* ── ACTION ROW ── */
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      font-size: 13px; font-weight: 600;
+      opacity: 0; transform: translateY(8px);
+      transition: all .25s;
+      pointer-events: none; z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.ok  { background: rgba(62,207,142,.2); border: 1px solid rgba(62,207,142,.35); color: var(--green); }
+    #toast.err { background: rgba(244,100,95,.2); border: 1px solid rgba(244,100,95,.3);  color: var(--red); }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; color: var(--muted); text-align: center;
+      padding: 60px 40px;
+    }
+    .empty-icon { font-size: 48px; opacity: .3; }
+    .empty h3 { font-size: 16px; font-weight: 600; color: var(--text); }
+    .empty p  { font-size: 13px; line-height: 1.6; max-width: 280px; }
+
+    /* ── EXPLANATION ── */
+    .explanation {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+      padding: 12px 14px;
+      background: var(--bg3);
+      border-left: 2px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    /* ── COMMIT PANEL ── */
+    .commit-panel { display: none; gap: 10px; flex-direction: column; }
+    .commit-panel.visible { display: flex; }
+    .commit-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">⚡</div>
+    <div class="logo-text">Auto<span>Fix</span></div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    <span id="api-status">connecting…</span>
+  </div>
+</header>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- ── SIDEBAR ── -->
+  <aside>
+    <div>
+      <div class="section-label">Error Log</div>
+      <textarea id="errorLog" rows="8" placeholder="Paste your error log here…
+e.g. TypeError: Cannot read properties of undefined (reading 'map') at App.js:42"></textarea>
+    </div>
+
+    <div>
+      <div class="section-label">File Path (optional)</div>
+      <input type="text" id="filePath" placeholder="e.g. src/App.js" />
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" onclick="generateFix()">
+      <div class="spinner" id="genSpinner"></div>
+      <span id="generateLabel">⚡ Generate Fix</span>
+    </button>
+
+    <div id="commitPanel" class="commit-panel">
+      <div class="section-label">Commit Message</div>
+      <input type="text" id="commitMsg" value="auto-fix: resolved error via AI" />
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="flex:1" onclick="commitFix(false)">🔖 Commit</button>
+        <button class="btn btn-ghost" style="flex:1" onclick="commitFix(true)">🔀 Commit + PR</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── CONTENT ── -->
+  <div class="content" id="content">
+    <div class="empty">
+      <div class="empty-icon">🤖</div>
+      <h3>No fix generated yet</h3>
+      <p>Paste your error log on the left and click <strong>Generate Fix</strong> to start the AI repair pipeline.</p>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ─── State ───
+let currentFix = null;
+let backupPath  = null;
+const API = ''; // same origin; set to 'http://localhost:3001' if dev
+
+// ─── Health check ───
+async function checkHealth() {
+  try {
+    const r = await fetch(`${API}/api/health`);
+    const d = await r.json();
+    const el = document.getElementById('api-status');
+    el.textContent = d.geminiKey ? 'gemini connected' : '⚠ no gemini key';
+    el.style.color = d.geminiKey ? '#3ecf8e' : '#f9a825';
+  } catch {
+    document.getElementById('api-status').textContent = 'server offline';
+  }
+}
+checkHealth();
+
+function goToFixPage(error) {
+  localStorage.setItem("selectedError", JSON.stringify(error));
+  window.location.href = "fix.html";
+}
+
+// ─── Generate Fix ───
+async function generateFix() {
+  const errorLog  = document.getElementById('errorLog').value.trim();
+  const filePath  = document.getElementById('filePath').value.trim();
+  if (!errorLog) return toast('Paste an error log first', 'err');
+
+  setLoading(true);
+
+  let fileContent = '';
+  if (filePath) {
+    try {
+      const r = await fetch(`${API}/api/preview-fix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath, oldCode: '', newCode: '' })
+      });
+    } catch(_) {}
+  }
+
+  try {
+    const r = await fetch(`${API}/api/generate-fix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ errorLog, filePath, fileContent })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || 'Unknown error');
+    currentFix = d.fix;
+    renderFix(d.fix, filePath);
+    toast('Fix generated ✓', 'ok');
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ─── Render Fix UI ───
+function renderFix(fix, filePath) {
+  const confColor = fix.confidence >= 80 ? '#3ecf8e' : fix.confidence >= 55 ? '#f9a825' : '#f4645f';
+  const confLabel = fix.confidence >= 80 ? 'High' : fix.confidence >= 55 ? 'Medium' : 'Low';
+
+  const alts = (fix.alternatives || []).map((a, i) => `
+    <div class="alt-item" onclick="applyAlternative(${i})">
+      <div class="alt-label">${escHtml(a.label)}</div>
+      <div class="alt-code">${escHtml(a.code)}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('content').innerHTML = `
+    <!-- Error Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>❌</span> Error Detected
+          <span class="badge badge-red">FAIL</span>
+        </div>
+        ${filePath ? `<span class="badge badge-teal">${escHtml(filePath)}</span>` : ''}
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="error-line">
+          <span class="error-icon">⚠</span>
+          <span>${escHtml(fix.error)}</span>
+        </div>
+        ${fix.explanation ? `<div class="explanation">${escHtml(fix.explanation)}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Confidence Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span>📊</span> AI Confidence</div>
+        <span class="badge badge-accent">${confLabel}</span>
+      </div>
+      <div class="card-body">
+        <div class="confidence-wrap">
+          <div class="confidence-bar-bg">
+            <div class="confidence-bar-fill" id="confBar" style="width:0%;background:${confColor}"></div>
+          </div>
+          <div class="confidence-label" style="color:${confColor}">${fix.confidence}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diff Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span>🔍</span> Diff Preview</div>
+        <div style="display:flex;gap:6px">
+          <span class="badge badge-red">BEFORE</span>
+          <span class="badge badge-green">AFTER</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="diff-grid">
+          <div class="diff-pane diff-pane-before">
+            <div class="diff-pane-header">— Before</div>
+            <div class="diff-code">${escHtml(fix.before)}</div>
+          </div>
+          <div class="diff-pane diff-pane-after">
+            <div class="diff-pane-header">+ After</div>
+            <div class="diff-code">${escHtml(fix.after)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span>🚀</span> Actions</div>
+        ${backupPath ? `<span class="badge badge-amber">Backup saved</span>` : ''}
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="action-row">
+          <button class="btn btn-success" onclick="applyFix()">✅ Apply Fix</button>
+          <button class="btn btn-danger"  onclick="restoreBackup()" id="restoreBtn" ${backupPath?'':'disabled style="opacity:.4;cursor:not-allowed"'}>↩ Restore</button>
+          <button class="btn btn-ghost"   onclick="copyFix()">📋 Copy Code</button>
+        </div>
+      </div>
+    </div>
+
+    ${alts ? `
+    <!-- Alternatives Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span>💡</span> Alternative Fixes</div>
+        <span class="badge badge-accent">AI Options</span>
+      </div>
+      <div class="card-body">
+        <div class="alt-list">${alts}</div>
+      </div>
+    </div>` : ''}
+  `;
+
+  // Show commit panel
+  document.getElementById('commitPanel').classList.add('visible');
+
+  // Animate confidence bar
+  setTimeout(() => {
+    const bar = document.getElementById('confBar');
+    if (bar) bar.style.width = fix.confidence + '%';
+  }, 100);
+}
+
+// ─── Apply Fix ───
+async function applyFix(altIndex) {
+  const filePath = document.getElementById('filePath').value.trim();
+  if (!filePath) return toast('Enter a file path to apply the fix', 'err');
+  if (!currentFix)  return toast('Generate a fix first', 'err');
+
+  const after = altIndex !== undefined
+    ? currentFix.alternatives[altIndex].code
+    : currentFix.after;
+
+  try {
+    const r = await fetch(`${API}/api/apply-fix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filePath,
+        oldCode:    currentFix.before,
+        newCode:    after,
+        lineNumber: currentFix.lineHint
+      })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    backupPath = d.backupPath;
+    toast(`Fix applied ✓  (backup at ${d.backupPath.split('/').pop()})`, 'ok');
+    // Re-render to update restore button
+    renderFix(currentFix, filePath);
+  } catch(e) {
+    toast(e.message, 'err');
+  }
+}
+
+function applyAlternative(i) {
+  if (!currentFix?.alternatives?.[i]) return;
+  currentFix.after = currentFix.alternatives[i].code;
+  toast('Alternative selected — click Apply Fix', 'ok');
+  // Update diff
+  const afterPane = document.querySelector('.diff-pane-after .diff-code');
+  if (afterPane) afterPane.textContent = currentFix.after;
+}
+
+// ─── Restore Backup ───
+async function restoreBackup() {
+  if (!backupPath) return toast('No backup available', 'err');
+  const filePath = document.getElementById('filePath').value.trim();
+  try {
+    const r = await fetch(`${API}/api/restore-backup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath, backupPath })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error('Restore failed');
+    backupPath = null;
+    toast('File restored to original ✓', 'ok');
+  } catch(e) {
+    toast(e.message, 'err');
+  }
+}
+
+// ─── Commit Fix ───
+async function commitFix(createPR) {
+  const filePath = document.getElementById('filePath').value.trim();
+  const message  = document.getElementById('commitMsg').value.trim();
+  if (!filePath) return toast('Enter a file path first', 'err');
+
+  try {
+    const r = await fetch(`${API}/api/commit-fix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath, message, createPR })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(createPR ? `PR opened: ${d.prUrl}` : 'Committed ✓', 'ok');
+  } catch(e) {
+    toast(e.message, 'err');
+  }
+}
+
+// ─── Copy Code ───
+function copyFix() {
+  if (!currentFix) return;
+  navigator.clipboard.writeText(currentFix.after).then(() => toast('Copied ✓', 'ok'));
+}
+
+// ─── Helpers ───
+function setLoading(on) {
+  const btn = document.getElementById('generateBtn');
+  const lbl = document.getElementById('generateLabel');
+  const sp  = document.getElementById('genSpinner');
+  btn.disabled     = on;
+  sp.style.display = on ? 'block' : 'none';
+  lbl.textContent  = on ? 'Analysing…' : '⚡ Generate Fix';
+}
+
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ─── Allow Ctrl+Enter to trigger generate ───
+document.getElementById('errorLog').addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') generateFix();
+});
+
+const error = JSON.parse(localStorage.getItem("selectedError"));
+
+if (error) {
+  document.getElementById("errorLog").value = error.title || error;
+}
+</script>
+</body>
+</html>

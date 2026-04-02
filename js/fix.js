@@ -3,6 +3,11 @@
 /* ═══════════════════════════════════════════════════════════════
    ErrorLens — Backend Ready fix.js (FINAL)
 ═══════════════════════════════════════════════════════════════ */
+const error = JSON.parse(localStorage.getItem("selectedError"));
+
+if (error) {
+  document.getElementById("errorLog").value = error.title || error;
+}
 
 // ─── STATE ─────────────────────────────────────────────────────
 function attachUserUI() {
