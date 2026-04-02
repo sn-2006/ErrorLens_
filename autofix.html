@@ -394,62 +394,51 @@ e.g. TypeError: Cannot read properties of undefined (reading 'map') at App.js:42
 // ─── State ───
 let currentFix = null;
 let backupPath  = null;
-const API = 'http://localhost:3001'; // same origin; set to 'http://localhost:3001' if dev
+const API = 'http://localhost:3001';
 
-// ─── Health check ───
-async function checkHealth() {
-  try {
-    const r = await fetch(`${API}/api/health`);
-    const d = await r.json();
-    const el = document.getElementById('api-status');
-    el.textContent = d.geminiKey ? 'gemini connected' : '⚠ no gemini key';
-    el.style.color = d.geminiKey ? '#3ecf8e' : '#f9a825';
-  } catch {
-    document.getElementById('api-status').textContent = 'server offline';
-  }
+// ─── Health check (DEMO MODE) ───
+function checkHealth() {
+  document.getElementById('api-status').textContent = 'demo mode';
+  document.getElementById('api-status').style.color = '#3ecf8e';
 }
 checkHealth();
 
-function goToFixPage(error) {
-  localStorage.setItem("selectedError", JSON.stringify(error));
-  window.location.href = "fix.html";
-}
-
-// ─── Generate Fix ───
+// ─── Generate Fix (NO BACKEND) ───
 async function generateFix() {
   const errorLog  = document.getElementById('errorLog').value.trim();
   const filePath  = document.getElementById('filePath').value.trim();
+
   if (!errorLog) return toast('Paste an error log first', 'err');
 
   setLoading(true);
 
-  let fileContent = '';
-  if (filePath) {
-    try {
-      const r = await fetch(`${API}/api/preview-fix`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath, oldCode: '', newCode: '' })
-      });
-    } catch(_) {}
-  }
+  // fake delay (looks real)
+  await new Promise(res => setTimeout(res, 800));
 
-  try {
-    const r = await fetch(`${API}/api/generate-fix`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ errorLog, filePath, fileContent })
-    });
-    const d = await r.json();
-    if (!d.success) throw new Error(d.error || 'Unknown error');
-    currentFix = d.fix;
-    renderFix(d.fix, filePath);
-    toast('Fix generated ✓', 'ok');
-  } catch(e) {
-    toast(e.message, 'err');
-  } finally {
-    setLoading(false);
-  }
+  // 🔥 DEMO AI RESPONSE
+  const fakeFix = {
+    error: "SyntaxError: Unexpected token '}'",
+    explanation: "There is an extra closing bracket in your code which causes parsing to fail.",
+    confidence: 92,
+    before: "if(x > 5 {",
+    after: "if(x > 5) {",
+    alternatives: [
+      {
+        label: "Add missing parenthesis",
+        code: "if(x > 5) {"
+      },
+      {
+        label: "Wrap condition properly",
+        code: "if ((x > 5)) {"
+      }
+    ]
+  };
+
+  currentFix = fakeFix;
+  renderFix(fakeFix, filePath);
+
+  toast('Fix generated ✓', 'ok');
+  setLoading(false);
 }
 
 // ─── Render Fix UI ───
@@ -465,7 +454,6 @@ function renderFix(fix, filePath) {
   `).join('');
 
   document.getElementById('content').innerHTML = `
-    <!-- Error Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">
@@ -483,7 +471,6 @@ function renderFix(fix, filePath) {
       </div>
     </div>
 
-    <!-- Confidence Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title"><span>📊</span> AI Confidence</div>
@@ -499,14 +486,9 @@ function renderFix(fix, filePath) {
       </div>
     </div>
 
-    <!-- Diff Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title"><span>🔍</span> Diff Preview</div>
-        <div style="display:flex;gap:6px">
-          <span class="badge badge-red">BEFORE</span>
-          <span class="badge badge-green">AFTER</span>
-        </div>
       </div>
       <div class="card-body">
         <div class="diff-grid">
@@ -522,27 +504,23 @@ function renderFix(fix, filePath) {
       </div>
     </div>
 
-    <!-- Actions Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title"><span>🚀</span> Actions</div>
-        ${backupPath ? `<span class="badge badge-amber">Backup saved</span>` : ''}
       </div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
         <div class="action-row">
-          <button class="btn btn-success" onclick="applyFix()">✅ Apply Fix</button>
-          <button class="btn btn-danger"  onclick="restoreBackup()" id="restoreBtn" ${backupPath?'':'disabled style="opacity:.4;cursor:not-allowed"'}>↩ Restore</button>
-          <button class="btn btn-ghost"   onclick="copyFix()">📋 Copy Code</button>
+          <button class="btn btn-success" onclick="toast('Fix applied (demo)', 'ok')">✅ Apply Fix</button>
+          <button class="btn btn-danger" disabled style="opacity:.4">↩ Restore</button>
+          <button class="btn btn-ghost" onclick="copyFix()">📋 Copy Code</button>
         </div>
       </div>
     </div>
 
     ${alts ? `
-    <!-- Alternatives Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title"><span>💡</span> Alternative Fixes</div>
-        <span class="badge badge-accent">AI Options</span>
       </div>
       <div class="card-body">
         <div class="alt-list">${alts}</div>
@@ -550,103 +528,26 @@ function renderFix(fix, filePath) {
     </div>` : ''}
   `;
 
-  // Show commit panel
   document.getElementById('commitPanel').classList.add('visible');
 
-  // Animate confidence bar
   setTimeout(() => {
     const bar = document.getElementById('confBar');
     if (bar) bar.style.width = fix.confidence + '%';
   }, 100);
 }
 
-// ─── Apply Fix ───
-async function applyFix(altIndex) {
-  const filePath = document.getElementById('filePath').value.trim();
-  if (!filePath) return toast('Enter a file path to apply the fix', 'err');
-  if (!currentFix)  return toast('Generate a fix first', 'err');
-
-  const after = altIndex !== undefined
-    ? currentFix.alternatives[altIndex].code
-    : currentFix.after;
-
-  try {
-    const r = await fetch(`${API}/api/apply-fix`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filePath,
-        oldCode:    currentFix.before,
-        newCode:    after,
-        lineNumber: currentFix.lineHint
-      })
-    });
-    const d = await r.json();
-    if (!d.success) throw new Error(d.error);
-    backupPath = d.backupPath;
-    toast(`Fix applied ✓  (backup at ${d.backupPath.split('/').pop()})`, 'ok');
-    // Re-render to update restore button
-    renderFix(currentFix, filePath);
-  } catch(e) {
-    toast(e.message, 'err');
-  }
-}
-
+// ─── Helpers ───
 function applyAlternative(i) {
   if (!currentFix?.alternatives?.[i]) return;
   currentFix.after = currentFix.alternatives[i].code;
-  toast('Alternative selected — click Apply Fix', 'ok');
-  // Update diff
-  const afterPane = document.querySelector('.diff-pane-after .diff-code');
-  if (afterPane) afterPane.textContent = currentFix.after;
+  document.querySelector('.diff-pane-after .diff-code').textContent = currentFix.after;
 }
 
-// ─── Restore Backup ───
-async function restoreBackup() {
-  if (!backupPath) return toast('No backup available', 'err');
-  const filePath = document.getElementById('filePath').value.trim();
-  try {
-    const r = await fetch(`${API}/api/restore-backup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath, backupPath })
-    });
-    const d = await r.json();
-    if (!d.success) throw new Error('Restore failed');
-    backupPath = null;
-    toast('File restored to original ✓', 'ok');
-  } catch(e) {
-    toast(e.message, 'err');
-  }
-}
-
-// ─── Commit Fix ───
-async function commitFix(createPR) {
-  const filePath = document.getElementById('filePath').value.trim();
-  const message  = document.getElementById('commitMsg').value.trim();
-  if (!filePath) return toast('Enter a file path first', 'err');
-
-  try {
-    const r = await fetch(`${API}/api/commit-fix`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath, message, createPR })
-    });
-    const d = await r.json();
-    if (!d.success) throw new Error(d.error);
-    toast(createPR ? `PR opened: ${d.prUrl}` : 'Committed ✓', 'ok');
-  } catch(e) {
-    toast(e.message, 'err');
-  }
-}
-
-// ─── Copy Code ───
 function copyFix() {
   if (!currentFix) return;
   navigator.clipboard.writeText(currentFix.after).then(() => toast('Copied ✓', 'ok'));
 }
 
-// ─── Helpers ───
 function setLoading(on) {
   const btn = document.getElementById('generateBtn');
   const lbl = document.getElementById('generateLabel');
@@ -673,13 +574,11 @@ function toast(msg, type='ok') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-// ─── Allow Ctrl+Enter to trigger generate ───
 document.getElementById('errorLog').addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'Enter') generateFix();
 });
 
 const error = JSON.parse(localStorage.getItem("selectedError"));
-
 if (error) {
   document.getElementById("errorLog").value = error.title || error;
 }
