@@ -61,11 +61,9 @@ const API = {
   },
 
   async chat(message) {
-    const res = await fetch(`https://errorlens-3d5o.onrender.com/api/chat`, {
+    const res = await fetch(`${BASE_URL}/api/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
         repo: REPO_NAME,
@@ -74,10 +72,15 @@ const API = {
         errors: ERRORS.slice(0, 5)
       })
     });
-
     return res.json();
-  }
-};
+  },                        // ← comma here, NOT }; 
+
+  async getErrorTypes() {   // ← inside the object
+    const res = await fetch(`${BASE_URL}/api/error-types`);
+    return res.json();
+  }                         // ← last method, no trailing comma needed
+
+};  // ← API object closes here, only once
 
 // ─── DOM ──────────────────────────────────────────────────────
 
@@ -148,6 +151,16 @@ async function init() {
     console.error(err);
     showToast('Failed to load data');
   }
+  // In init(), add to the Promise.all:
+const [repo, errors, fixes, errorTypes] = await Promise.all([
+  API.getRepo(),
+  API.getErrors(),
+  API.getFixes(),
+  API.getErrorTypes()
+]);
+
+// After the existing render calls:
+renderErrorTypes(errorTypes.types);
 }
 
 // ─── FILE GENERATOR ───────────────────────────────────────────
@@ -371,3 +384,95 @@ function esc(str) {
 // ─── START ───────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', init);
+
+// New render function:
+let errorTypesChartInstance = null;
+
+function renderErrorTypes(types) {
+  if (!types || !types.length) return;
+
+  // Badge
+  document.getElementById('errorTypesBadge').textContent = `${types.length} types`;
+
+  // Tiles
+  const grid = document.getElementById('errorTypesGrid');
+  grid.innerHTML = '';
+  types.forEach(t => {
+    const tile = document.createElement('div');
+    tile.className = `error-type-tile ${t.severity || ''}`;
+    tile.innerHTML = `
+      <span class="error-type-name mono">${esc(t.type)}</span>
+      <span class="error-type-count">${t.count}</span>
+    `;
+    grid.appendChild(tile);
+  });
+
+  // Chart
+  const SEV_COLORS = {
+    critical: '#ff5757',
+    warning:  '#ffd166',
+    info:     '#60a5fa',
+  };
+  const labels = types.map(t => t.type);
+  const data   = types.map(t => t.count);
+  const colors = types.map(t => SEV_COLORS[t.severity] || '#00e5ff');
+
+  if (errorTypesChartInstance) errorTypesChartInstance.destroy();
+
+  errorTypesChartInstance = new Chart(
+    document.getElementById('errorTypesChart'),
+    {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Occurrences',
+          data,
+          backgroundColor: colors.map(c => c + '33'), // ~20% opacity fill
+          borderColor: colors,
+          borderWidth: 1.5,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0d1117',
+            borderColor: 'rgba(255,255,255,0.08)',
+            borderWidth: 1,
+            titleColor: '#e8edf5',
+            bodyColor: '#8b96b0',
+            titleFont: { family: 'JetBrains Mono', size: 11 },
+            bodyFont: { family: 'JetBrains Mono', size: 11 },
+            callbacks: {
+              label: ctx => ` ${ctx.parsed.y} occurrences`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#4a5568',
+              font: { family: 'JetBrains Mono', size: 10 },
+              autoSkip: false,
+              maxRotation: 30,
+            },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          },
+          y: {
+            ticks: {
+              color: '#4a5568',
+              font: { family: 'JetBrains Mono', size: 10 },
+              precision: 0,
+            },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            beginAtZero: true,
+          }
+        }
+      }
+    }
+  );
+}

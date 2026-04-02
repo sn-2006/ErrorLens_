@@ -85,3 +85,21 @@ app.get('/api/fixes', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);
 });
+
+// GET /api/error-types
+// Returns error type breakdown + per-type count for the chart
+app.get('/api/error-types', async (req, res) => {
+  try {
+    const errors = await fetchErrorsFromSource(); // reuse however you fetch errors
+    const typeMap = {};
+    errors.forEach(e => {
+      const key = e.type || e.title || 'Unknown';
+      if (!typeMap[key]) typeMap[key] = { type: key, count: 0, severity: e.severity };
+      typeMap[key].count++;
+    });
+    const types = Object.values(typeMap).sort((a, b) => b.count - a.count);
+    res.json({ types });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
