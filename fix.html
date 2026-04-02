@@ -285,6 +285,16 @@
   // 🔥 Make auth global so fix.js can use it
   window.auth = auth;
 </script>
+<script>
+const storedError = localStorage.getItem("selectedError");
+const error = storedError ? JSON.parse(storedError) : null;
+
+const API = "http://localhost:3001";
+
+if (error) {
+  document.getElementById("errorLog").value = error.title || error;
+}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script type="module" src="js/fix.js"></script>
 </body>

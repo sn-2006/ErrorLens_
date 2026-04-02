@@ -3,7 +3,9 @@
 /* ═══════════════════════════════════════════════════════════════
    ErrorLens — Backend Ready fix.js (FINAL)
 ═══════════════════════════════════════════════════════════════ */
-const error = JSON.parse(localStorage.getItem("selectedError"));
+
+const storedError = localStorage.getItem("selectedError");
+const error = storedError ? JSON.parse(storedError) : null;
 
 if (error) {
   document.getElementById("errorLog").value = error.title || error;
